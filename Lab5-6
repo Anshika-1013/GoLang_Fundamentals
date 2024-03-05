@@ -1,0 +1,135 @@
+package main
+
+import (
+    "fmt"
+    "strconv"
+)
+
+// Product struct to represent products in the super market
+type Product struct {
+    name     string
+    price    float64
+    quantity int
+}
+
+// SuperMarket struct to manage products
+type SuperMarket struct {
+    products []Product
+}
+
+// AddProduct adds a product to the inventory
+func (s SuperMarket) AddProduct(name string, price float64, quantity int) (SuperMarket, error) {
+    if name == "" {
+        return s, fmt.Errorf("Product name cannot be empty")
+    }
+    if price <= 0 {
+        return s, fmt.Errorf("Price must be greater than 0")
+    }
+    if quantity <= 0 {
+        return s, fmt.Errorf("Quantity must be greater than 0")
+    }
+    s.products = append(s.products, Product{name, price, quantity})
+    return s, nil
+}
+
+// ListProducts lists all products in the inventory
+func (s SuperMarket) ListProducts() {
+    if len(s.products) == 0 {
+        fmt.Println("No products available")
+        return
+    }
+    fmt.Println("Products in inventory:")
+    for _, product := range s.products {
+        fmt.Printf("Name: %s, Price: $%.2f, Quantity: %d\n", product.name, product.price, product.quantity)
+    }
+}
+
+// SellProduct sells a product
+func (s SuperMarket) SellProduct(name string, quantity int) (SuperMarket, error) {
+    if name == "" {
+        return s, fmt.Errorf("Product name cannot be empty")
+    }
+    if quantity <= 0 {
+        return s, fmt.Errorf("Quantity must be greater than 0")
+    }
+    for i, product := range s.products {
+        if product.name == name {
+            if product.quantity < quantity {
+                return s, fmt.Errorf("Not enough %s in stock", name)
+            }
+            s.products[i].quantity -= quantity
+            return s, nil
+        }
+    }
+    return s, fmt.Errorf("%s not found", name)
+}
+
+func main() {
+    supermarket := SuperMarket{}
+    var choice int
+
+    for {
+        fmt.Println("1. Add Product")
+        fmt.Println("2. List Products")
+        fmt.Println("3. Sell Product")
+        fmt.Println("4. Exit")
+        fmt.Print("Enter your choice: ")
+        fmt.Scanln(&choice)
+
+        switch choice {
+        case 1:
+            var name string
+            var priceStr string
+            var quantityStr string
+            fmt.Print("Enter product name: ")
+            fmt.Scanln(&name)
+            fmt.Print("Enter price: ")
+            fmt.Scanln(&priceStr)
+            price, err := strconv.ParseFloat(priceStr, 64)
+            if err != nil {
+                fmt.Println("Invalid price. Please enter a valid number")
+                continue
+            }
+            fmt.Print("Enter quantity: ")
+            fmt.Scanln(&quantityStr)
+            quantity, err := strconv.Atoi(quantityStr)
+            if err != nil {
+                fmt.Println("Invalid quantity. Please enter a valid number")
+                continue
+            }
+            newMarket, err := supermarket.AddProduct(name, price, quantity)
+            if err != nil {
+                fmt.Println("Error:", err)
+            } else {
+                fmt.Println("Product added successfully")
+                supermarket = newMarket
+            }
+        case 2:
+            supermarket.ListProducts()
+        case 3:
+            var name string
+            var quantityStr string
+            fmt.Print("Enter product name: ")
+            fmt.Scanln(&name)
+            fmt.Print("Enter quantity to sell: ")
+            fmt.Scanln(&quantityStr)
+            quantity, err := strconv.Atoi(quantityStr)
+            if err != nil {
+                fmt.Println("Invalid quantity. Please enter a valid number")
+                continue
+            }
+            newMarket, err := supermarket.SellProduct(name, quantity)
+            if err != nil {
+                fmt.Println("Error:", err)
+            } else {
+                fmt.Println("Product sold successfully")
+                supermarket = newMarket
+            }
+        case 4:
+            fmt.Println("Exiting program")
+            return
+        default:
+            fmt.Println("Invalid choice. Please enter a number between 1 and 4")
+        }
+    }
+}
