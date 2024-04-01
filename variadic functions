@@ -1,0 +1,186 @@
+package main
+
+import (
+	"bufio"
+	"errors"
+	"fmt"
+	"os"
+	"strings"
+)
+
+// LibraryItem interface defines methods for library items
+type LibraryItem interface {
+	Borrow() error
+	Return() error
+	Available() bool
+}
+
+// Book represents a book in the library
+type Book struct {
+	Title       string
+	Author      string
+	IsAvailable bool
+}
+
+// NewBook creates a new Book instance with default availability status
+func NewBook(title, author string) Book {
+	return Book{
+		Title:       title,
+		Author:      author,
+		IsAvailable: true,
+	}
+}
+
+// Borrow marks the book as borrowed if available, otherwise returns an error
+func (b Book) Borrow() error {
+	if b.IsAvailable {
+		b.IsAvailable = false
+		return nil
+	}
+	return errors.New("the book is not available")
+}
+
+// Return marks the book as returned if borrowed, otherwise returns an error
+func (b Book) Return() error {
+	if !b.IsAvailable {
+		b.IsAvailable = true
+		return nil
+	}
+	return errors.New("the book is already available")
+}
+
+// Available checks if the book is available
+func (b Book) Available() bool {
+	return b.IsAvailable
+}
+
+// AddToLibrary adds multiple LibraryItem instances to the library's collection
+func AddToLibrary(items ...LibraryItem) []LibraryItem {
+	var libraryCollection []LibraryItem
+	for _, item := range items {
+		libraryCollection = append(libraryCollection, item)
+	}
+	return libraryCollection
+}
+
+func main() {
+	reader := bufio.NewReader(os.Stdin)
+
+	// Adding books to the library
+	book1 := NewBook("Book 1", "Author 1")
+	book2 := NewBook("Book 2", "Author 2")
+	book3 := NewBook("Book 3", "Author 3")
+
+	libraryCollection := AddToLibrary(book1, book2, book3)
+
+	for {
+		fmt.Println("\nLibrary Management System Menu:")
+		fmt.Println("1. Borrow a Book")
+		fmt.Println("2. Return a Book")
+		fmt.Println("3. Check Availability")
+		fmt.Println("4. Add a Book")
+		fmt.Println("5. Exit")
+		fmt.Print("Please enter your choice: ")
+
+		choice, _ := reader.ReadString('\n')
+		choice = strings.TrimSpace(choice)
+
+		switch choice {
+		case "1":
+			borrowBook(reader, libraryCollection)
+		case "2":
+			returnBook(reader, libraryCollection)
+		case "3":
+			checkAvailability(reader, libraryCollection)
+		case "4":
+			libraryCollection = addBook(reader, libraryCollection)
+		case "5":
+			fmt.Println("Exiting the program.")
+			return
+		default:
+			fmt.Println("Invalid choice. Please try again.")
+		}
+	}
+}
+
+func borrowBook(reader *bufio.Reader, libraryCollection []LibraryItem) {
+	for {
+		fmt.Print("Enter the title of the book you want to borrow: ")
+		title, _ := reader.ReadString('\n')
+		title = strings.TrimSpace(title)
+
+		for _, item := range libraryCollection {
+			book, ok := item.(Book)
+			if ok && strings.EqualFold(book.Title, title) {
+				err := book.Borrow()
+				if err != nil {
+					fmt.Println("Error:", err)
+					return
+				}
+				fmt.Println("Book borrowed successfully.")
+				return
+			}
+		}
+
+		fmt.Println("Book not found in the library. Please try again.")
+	}
+}
+
+func returnBook(reader *bufio.Reader, libraryCollection []LibraryItem) {
+	for {
+		fmt.Print("Enter the title of the book you want to return: ")
+		title, _ := reader.ReadString('\n')
+		title = strings.TrimSpace(title)
+
+		for _, item := range libraryCollection {
+			book, ok := item.(Book)
+			if ok && strings.EqualFold(book.Title, title) {
+				err := book.Return()
+				if err != nil {
+					fmt.Println("Error:", err)
+					return
+				}
+				fmt.Println("Book returned successfully.")
+				return
+			}
+		}
+
+		fmt.Println("Book not found in the library. Please try again.")
+	}
+}
+
+func checkAvailability(reader *bufio.Reader, libraryCollection []LibraryItem) {
+	fmt.Print("Enter the title of the book you want to check: ")
+	title, _ := reader.ReadString('\n')
+	title = strings.TrimSpace(title)
+
+	for _, item := range libraryCollection {
+		book, ok := item.(Book)
+		if ok && strings.EqualFold(book.Title, title) {
+			if book.Available() {
+				fmt.Println("Book is available.")
+			} else {
+				fmt.Println("Book is not available.")
+			}
+			return
+		}
+	}
+
+	fmt.Println("Book not found in the library.")
+}
+
+func addBook(reader *bufio.Reader, libraryCollection []LibraryItem) []LibraryItem {
+	fmt.Print("Enter the title of the book you want to add: ")
+	title, _ := reader.ReadString('\n')
+	title = strings.TrimSpace(title)
+
+	fmt.Print("Enter the author of the book: ")
+	author, _ := reader.ReadString('\n')
+	author = strings.TrimSpace(author)
+
+	newBook := NewBook(title, author)
+	libraryCollection = append(libraryCollection, newBook)
+
+	fmt.Println("Book added to the library successfully.")
+	return libraryCollection
+}
