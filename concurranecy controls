@@ -1,0 +1,99 @@
+package main
+
+import (
+	"errors"
+	"fmt"
+	"sync"
+)
+
+// Product structure
+type Product struct {
+	productID int
+	name      string
+	price     float32
+	quantity  int
+}
+
+// Transaction interface to define common methods for sale and restock
+type Transaction interface {
+	Execute(product *Product, ch chan<- error)
+}
+
+// Sale struct to handle sale transactions
+type Sale struct {
+	quantity int
+}
+
+// Execute method for Sale
+func (s *Sale) Execute(product *Product, ch chan<- error) {
+	if s.quantity <= 0 || s.quantity > product.quantity {
+		ch <- errors.New("invalid sale quantity")
+		return
+	}
+	product.quantity -= s.quantity
+	ch <- nil
+}
+
+// Restock struct to handle restock transactions
+type Restock struct {
+	quantity int
+}
+
+// Execute method for Restock
+func (r *Restock) Execute(product *Product, ch chan<- error) {
+	if r.quantity <= 0 {
+		ch <- errors.New("invalid restock quantity")
+		return
+	}
+	product.quantity += r.quantity
+	ch <- nil
+}
+
+// Function to display product details
+func DisplayProductDetails(product *Product) {
+	fmt.Println("Product Information:")
+	fmt.Printf("Product ID: %d\nName: %s\nPrice: %.2f\nQuantity: %d\n", product.productID, product.name, product.price, product.quantity)
+}
+
+func main() {
+	// Static product data
+	product1 := Product{0, "Milk", 2.5, 20}
+	product2 := Product{1, "Bread", 1.0, 30}
+	products := []*Product{&product1, &product2} // Array of pointers to Product
+
+	var wg sync.WaitGroup
+
+	for i := 0; i < 5; i++ {
+		wg.Add(1)
+		go func(product *Product) {
+			defer wg.Done()
+			ch := make(chan error)
+
+			// Sale transaction
+			sale := &Sale{quantity: 5}
+			go sale.Execute(product, ch)
+			err := <-ch
+			if err != nil {
+				fmt.Printf("Error in sale transaction for %s: %v\n", product.name, err)
+			} else {
+				fmt.Printf("Sold 5 units of %s\n", product.name)
+			}
+
+			// Restock transaction
+			ch = make(chan error)
+			restock := &Restock{quantity: 10}
+			go restock.Execute(product, ch)
+			err = <-ch
+			if err != nil {
+				fmt.Printf("Error in restock transaction for %s: %v\n", product.name, err)
+			} else {
+				fmt.Printf("Restocked 10 units of %s\n", product.name)
+			}
+
+			// Display product details
+			DisplayProductDetails(product)
+		}(products[i%2]) // Alternate between two products
+	}
+
+	wg.Wait()
+}
