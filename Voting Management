@@ -1,0 +1,251 @@
+//Concept used in code are
+//1.error handling:use of errors.new for handling custom errors
+//2.structures:to represent both voters and candidates
+//3.variadic functions"to take multiple voters
+//4.code validation:code is being validated with age constraint of above 18
+//5.pointers:pointers are used in order to store and handle dynamic data
+//6.switch case:switch case is used to represent a menu driven code
+//7.dataTypes used=boolen,string and integer
+//8.The code  takes user input from the user
+package main
+
+import (
+	"bufio"
+	"errors"
+	"fmt"
+	"os"
+	"strings"
+)
+
+// Voter represents a registered voter
+type Voter struct {
+	ID       string
+	Name     string
+	Age      int
+	Gender   string
+	HasVoted bool
+}
+
+// Candidate represents a candidate
+type Candidate struct {
+	Name   string
+	Votes  int
+	Gender string
+	Age    int
+}
+
+// VotingSystem represents the voting system
+type VotingSystem struct {
+	voters     map[string]Voter
+	candidates []Candidate
+}
+
+// NewVotingSystem creates a new voting system
+func NewVotingSystem() *VotingSystem {
+	return &VotingSystem{
+		voters:     make(map[string]Voter),
+		candidates: []Candidate{},
+	}
+}
+
+// RegisterVoter registers a new voter with age validation
+func (vs *VotingSystem) RegisterVoter(id, name, gender string, age int) error {
+	// Age validation: anyone below 18 will not be registered
+	if age < 18 {
+		return errors.New("voter must be 18 years or older")
+	}
+
+	if _, ok := vs.voters[id]; ok {
+		return errors.New("voter already registered")
+	}
+
+	vs.voters[id] = Voter{ID: id, Name: name, Age: age, Gender: gender}
+	return nil
+}
+
+// RegisterCandidate registers a new candidate
+func (vs *VotingSystem) RegisterCandidate(name, gender string, age int) {
+	vs.candidates = append(vs.candidates, Candidate{Name: name, Gender: gender, Age: age})
+}
+
+// CastVote allows a registered voter to cast their vote
+func (vs *VotingSystem) CastVote(voterID, candidateName string) error {
+	voter, ok := vs.voters[voterID]
+	if !ok {
+		return errors.New("voter not found")
+	}
+	if voter.HasVoted {
+		return errors.New("voter has already cast their vote")
+	}
+
+	for i := range vs.candidates {
+		if vs.candidates[i].Name == candidateName {
+			vs.candidates[i].Votes++
+			vs.voters[voterID] = Voter{ID: voter.ID, Name: voter.Name, Age: voter.Age, Gender: voter.Gender, HasVoted: true}
+			return nil
+		}
+	}
+
+	return errors.New("candidate not found")
+}
+
+// DisplayRegisteredVoters displays the list of registered voters
+func (vs *VotingSystem) DisplayRegisteredVoters() {
+	fmt.Println("Registered Voters:")
+	if len(vs.voters) == 0 {
+		fmt.Println("No voters registered.")
+		return
+	}
+	for _, v := range vs.voters {
+		fmt.Printf("ID: %s, Name: %s, Age: %d, Gender: %s\n", v.ID, v.Name, v.Age, v.Gender)
+	}
+}
+
+// DisplayCandidates displays the list of candidates
+func (vs *VotingSystem) DisplayCandidates() {
+	fmt.Println("Candidates:")
+	for _, c := range vs.candidates {
+		fmt.Printf("Name: %s, Age: %d, Gender: %s, Votes: %d\n", c.Name, c.Age, c.Gender, c.Votes)
+	}
+}
+
+// RemoveVoter removes a voter from the system
+func (vs *VotingSystem) RemoveVoter(id string) error {
+	if _, ok := vs.voters[id]; !ok {
+		return errors.New("voter not found")
+	}
+	delete(vs.voters, id)
+	return nil
+}
+
+func main() {
+	votingSystem := NewVotingSystem()
+	reader := bufio.NewReader(os.Stdin)
+
+	for {
+		fmt.Println("\nVoting System Menu:")
+		fmt.Println("1. Register Voter")
+		fmt.Println("2. Register Candidate")
+		fmt.Println("3. Cast Vote")
+		fmt.Println("4. Display Registered Voters")
+		fmt.Println("5. Display Candidates")
+		fmt.Println("6. Remove Voter")
+		fmt.Println("7. Exit")
+		fmt.Print("Please enter your choice: ")
+
+		choice, err := reader.ReadString('\n')
+		if err != nil {
+			fmt.Println("Error reading input:", err)
+			continue
+		}
+		choice = strings.TrimSpace(choice)
+
+		switch choice {
+		case "1":
+			fmt.Println("Enter Voter Details:")
+			fmt.Print("ID: ")
+			id, err := reader.ReadString('\n')
+			if err != nil {
+				fmt.Println("Error reading input:", err)
+				continue
+			}
+			id = strings.TrimSpace(id)
+			fmt.Print("Name: ")
+			name, err := reader.ReadString('\n')
+			if err != nil {
+				fmt.Println("Error reading input:", err)
+				continue
+			}
+			name = strings.TrimSpace(name)
+			fmt.Print("Age: ")
+			var age int
+			_, err = fmt.Scanln(&age)
+			if err != nil {
+				fmt.Println("Error reading input:", err)
+				continue
+			}
+			fmt.Print("Gender: ")
+			gender, err := reader.ReadString('\n')
+			if err != nil {
+				fmt.Println("Error reading input:", err)
+				continue
+			}
+			gender = strings.TrimSpace(gender)
+			err = votingSystem.RegisterVoter(id, name, gender, age)
+			if err != nil {
+				fmt.Println("Error:", err)
+			} else {
+				fmt.Println("Voter registered successfully.")
+			}
+		case "2":
+			fmt.Println("Enter Candidate Details:")
+			fmt.Print("Name: ")
+			name, err := reader.ReadString('\n')
+			if err != nil {
+				fmt.Println("Error reading input:", err)
+				continue
+			}
+			name = strings.TrimSpace(name)
+			fmt.Print("Age: ")
+			var age int
+			_, err = fmt.Scanln(&age)
+			if err != nil {
+				fmt.Println("Error reading input:", err)
+				continue
+			}
+			fmt.Print("Gender: ")
+			gender, err := reader.ReadString('\n')
+			if err != nil {
+				fmt.Println("Error reading input:", err)
+				continue
+			}
+			gender = strings.TrimSpace(gender)
+			votingSystem.RegisterCandidate(name, gender, age)
+			fmt.Println("Candidate registered successfully.")
+		case "3":
+			fmt.Println("Enter Voter ID:")
+			id, err := reader.ReadString('\n')
+			if err != nil {
+				fmt.Println("Error reading input:", err)
+				continue
+			}
+			id = strings.TrimSpace(id)
+			fmt.Println("Enter Candidate Name:")
+			candidateName, err := reader.ReadString('\n')
+			if err != nil {
+				fmt.Println("Error reading input:", err)
+				continue
+			}
+			candidateName = strings.TrimSpace(candidateName)
+			err = votingSystem.CastVote(id, candidateName)
+			if err != nil {
+				fmt.Println("Error:", err)
+			} else {
+				fmt.Println("Vote cast successfully.")
+			}
+		case "4":
+			votingSystem.DisplayRegisteredVoters()
+		case "5":
+			votingSystem.DisplayCandidates()
+		case "6":
+			fmt.Println("Enter Voter ID to remove:")
+			id, err := reader.ReadString('\n')
+			if err != nil {
+				fmt.Println("Error reading input:", err)
+				continue
+			}
+			id = strings.TrimSpace(id)
+			err = votingSystem.RemoveVoter(id)
+			if err != nil {
+				fmt.Println("Error:", err)
+			} else {
+				fmt.Println("Voter removed successfully.")
+			}
+		case "7":
+			fmt.Println("Exiting the program.")
+			return
+		default:
+			fmt.Println("Invalid choice. Please try again.")
+		}
+	}
+}
